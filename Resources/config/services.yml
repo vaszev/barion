@@ -1,0 +1,10 @@
+services:
+  Vaszev\BarionBundle\Service\Barion:
+    public: false
+    autowire: true
+    autoconfigure: true
+
+  Vaszev\BarionBundle\Twig\BarionExtension:
+    public: false
+    autowire: true
+    autoconfigure: true

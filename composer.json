@@ -1,0 +1,43 @@
+{
+  "name": "vaszev/barion-bundle",
+  "type": "symfony-bundle",
+  "description": "Symfony bundle for Barion",
+  "keywords": ["Barion", "Symfony"],
+  "homepage": "https://github.com/vaszev/barion.git",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Roland Bodnar",
+      "email": "vaszev@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^7.1",
+    "symfony/framework-bundle": "^4.0",
+    "twig/extensions": "^1.5",
+    "ext-curl": "*",
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "symfony/phpunit-bridge": "^4.0"
+  },
+  "config": {
+    "platform": {
+      "php": "7.1.3"
+    },
+    "preferred-install": {
+      "*": "dist"
+    },
+    "sort-packages": true
+  },
+  "autoload": {
+    "psr-4": {
+      "Vaszev\\BarionBundle\\": ""
+    }
+  },
+  "conflict": {
+    "symfony/symfony": "<4.0"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}

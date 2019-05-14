@@ -5,6 +5,7 @@ namespace Vaszev\BarionBundle\Service;
 use Doctrine\ORM\EntityManagerInterface;
 use ReflectionClass;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Vaszev\BarionBundle\BarionLibrary\ApiErrorModel;
@@ -114,7 +115,6 @@ class Barion {
   private $em;
   private $validator;
   private $redirectURL;
-  private $callbackURL;
   private $webshopName;
   /** @var string */
   private $currency;
@@ -140,19 +140,17 @@ class Barion {
 
   /**
    * @param $redirectURL
-   * @param $callbackURL
    * @param string $currency
    * @return $this
    * @throws \Exception
    */
-  public function init($redirectURL, $callbackURL, $currency = 'HUF') {
+  public function init($redirectURL, $currency = 'HUF') {
     $posKey = $this->container->getParameter('vaszev_barion.posKey');
     $apiVersion = $this->container->getParameter('vaszev_barion.apiVersion');
     $sandbox = $this->container->getParameter('vaszev_barion.sandbox');
     $webshopName = $this->container->getParameter('vaszev_barion.webshopName');
     $this->webshopName = $webshopName;
     $this->redirectURL = $redirectURL;
-    $this->callbackURL = $callbackURL;
     $this->currency = $currency;
     $this->client = new BarionClient($posKey, $apiVersion, ($sandbox ? BarionEnvironment::Test : BarionEnvironment::Prod));
 
@@ -238,7 +236,7 @@ class Barion {
                  ->setCurrency($this->currency)
                  ->setShippingAddress($shippingAddress)
                  ->setRedirectUrl($this->redirectURL)
-                 ->setCallbackUrl($this->callbackURL);
+                 ->setCallbackUrl($this->container->get('router')->generate('barion_callback', [], UrlGeneratorInterface::ABSOLUTE_URL));
     $this->requestModel = $requestModel;
 
     return $this;
@@ -269,7 +267,6 @@ class Barion {
     $errors = $this->validator->validate($this->transactionModel);
     if (count($errors) > 0) {
       $errorsString = (string)$errors;
-
       throw new \Exception($errorsString);
     }
     try {
@@ -336,18 +333,16 @@ class Barion {
     $paymentRequestRepo = $this->em->getRepository(BarionPaymentRequestModel::class);
     $responseModel = new BarionPaymentResponseModel();
     $responseModel->setPaymentId($myPayment->PaymentId)
-      ->setPaymentRequestId($paymentRequestRepo->find((int)$myPayment->PaymentRequestId))
-      ->setStatus($myPayment->Status)
-      ->setQRUrl($myPayment->QRUrl)
-      ->setRecurrenceResult($myPayment->RecurrenceResult)
-      ->setPaymentRedirectUrl($myPayment->PaymentRedirectUrl);
+                  ->setPaymentRequestId($paymentRequestRepo->find((int)$myPayment->PaymentRequestId))
+                  ->setStatus($myPayment->Status)
+                  ->setQRUrl($myPayment->QRUrl)
+                  ->setRecurrenceResult($myPayment->RecurrenceResult)
+                  ->setPaymentRedirectUrl($myPayment->PaymentRedirectUrl);
     try {
       $this->em->persist($responseModel);
       $this->em->flush();
     } catch (\Exception $e) {
       throw new \Exception('Response model cannot be flushed.');
     }
-    dump($responseModel);
-
   }
 }

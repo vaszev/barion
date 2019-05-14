@@ -7,10 +7,8 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 
 class Configuration implements ConfigurationInterface {
 
-  private $posKey = null;
   private $sandbox = true;
   private $apiVersion = 2;
-  private $payee = null;
   private $webshopName = 'wsm';
 
 
@@ -24,10 +22,10 @@ class Configuration implements ConfigurationInterface {
     $rootNode = $builder->root('vaszev_barion');
     $rootNode
         ->children()
-        ->variableNode('posKey')->defaultValue($this->posKey)->end()
+        ->variableNode('posKey')->isRequired()->cannotBeEmpty()->end()
         ->booleanNode('sandbox')->defaultValue($this->sandbox)->end()
         ->integerNode('apiVersion')->defaultValue($this->apiVersion)->end()
-        ->variableNode('payee')->defaultValue($this->payee)->end()
+        ->variableNode('payee')->isRequired()->cannotBeEmpty()->end()
         ->variableNode('webshopName')->defaultValue($this->webshopName)->end()
         ->end();
 

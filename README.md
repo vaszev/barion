@@ -13,9 +13,18 @@ $ composer require vaszev/barion-bundle
 
     Barion library (1.3.1 March 20. 2019.) wrapper for Symfony 4
 
-Please note that this bundle is implemented for simple **B2C** Immediate payment type only. 
+Please note that this bundle is for simple **B2C** Immediate payment type only. Project still *in development stage, use only at your own risk!* 
 
 ### Install
+
+Configure your credentials:
+
+    vaszev_barion:
+      posKey: 'YOUR_POS_KEY_FROM_BARION'
+      apiVersion: 2
+      sandbox: true
+      payee: 'YOUR.SHOP.EMAIL@EXAMPLE.COM'
+      webshopName: 'YOUR_WEBSHOP_PREFIX'
 
 Add the following to your routing:
 

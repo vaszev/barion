@@ -144,7 +144,7 @@ class Barion {
    * @return $this
    * @throws \Exception
    */
-  public function init($redirectURL, $currency = 'HUF') {
+  public function init($redirectURL, $currency = Currency::HUF) {
     $posKey = $this->container->getParameter('vaszev_barion.posKey');
     $apiVersion = $this->container->getParameter('vaszev_barion.apiVersion');
     $sandbox = $this->container->getParameter('vaszev_barion.sandbox');

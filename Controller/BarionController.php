@@ -37,7 +37,6 @@ class BarionController extends AbstractController {
     $logger->debug(serialize($r));
     $logger->debug(serialize($q));
 
-
     return $ret;
   }
 

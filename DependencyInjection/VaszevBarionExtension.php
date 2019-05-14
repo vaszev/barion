@@ -12,14 +12,10 @@ class VaszevBarionExtension extends Extension implements PrependExtensionInterfa
 
   public function load(array $configs, ContainerBuilder $container) {
     $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
-
-    $loader->load('services.yml');
+    $loader->load('services.yaml');
     $config = $this->processConfiguration(new Configuration(), $configs);
-    /**
-     * default_image, docs, image_variations['small'->[150,350]]
-     */
-    foreach ($config as $key=>$val) {
-      $container->setParameter('vaszev_barion.'.$key, $val);
+    foreach ($config as $key => $val) {
+      $container->setParameter('vaszev_barion.' . $key, $val);
     }
   }
 

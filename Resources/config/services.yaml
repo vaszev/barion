@@ -1,0 +1,18 @@
+services:
+  _defaults:
+    autowire: true      # Automatically injects dependencies in your services.
+    autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+  Vaszev\BarionBundle\Service\Barion:
+    public: false
+
+  Vaszev\BarionBundle\Twig\BarionExtension:
+    public: false
+
+  Vaszev\BarionBundle\Repository\:
+    resource: '../../Repository/*'
+    tags: ['doctrine.repository_service']
+
+  Vaszev\BarionBundle\Controller\:
+    resource: '../../Controller'
+    tags: ['controller.service_arguments']

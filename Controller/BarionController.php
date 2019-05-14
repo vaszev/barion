@@ -17,6 +17,7 @@ class BarionController extends AbstractController {
       return $locale;
     }
 
+
     return $default;
   }
 

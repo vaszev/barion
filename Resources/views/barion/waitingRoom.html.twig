@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex,noarchive">
+  <title>Barion smart gateway</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css?family=Lato&amp;subset=latin-ext" rel="stylesheet">
+  <style>
+    html {
+      height: 100vh;
+    }
+
+    body {
+      font-family: 'Lato', sans-serif;
+      height: 100vh;
+      background-color: {{ waitingRoomBg }};
+      color: {{ waitingRoomColor }};
+      font-size: 18px;
+      margin: 0;
+      overflow-y: hidden;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin: 0;
+    }
+
+    h2, h3 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+
+    strong {
+      color: {{ waitingRoomAmountColor }};
+    }
+
+    img {
+      padding: 1rem;
+      background-color: #fff;
+    }
+
+    .content {
+      height: 100vh;
+      display: flex;
+      flex-flow: column;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-evenly;
+      text-align: center;
+      max-width: 85vw;
+      margin: 0 auto;
+    }
+
+    .result {
+      display: block;
+      padding: 2vh 5vw;
+      font-size: 2rem;
+      color: #fff;
+      border-radius: 5px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .msg {
+      font-style: italic;
+      color: tomato;
+    }
+
+    .back {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .progressbar {
+      counter-reset: step;
+      width: 75vw;
+      min-width: 500px;
+      padding-inline-start: 0;
+      display: flex;
+      justify-content: center;
+      margin: 0;
+    }
+
+    .progressbar li {
+      list-style-type: none;
+      width: 25%;
+      float: left;
+      position: relative;
+      text-align: center;
+      text-transform: uppercase;
+      color: #7d7d7d;
+    }
+
+    .progressbar li:before {
+      width: 3rem;
+      height: 3rem;
+      content: counter(step);
+      counter-increment: step;
+      line-height: 3rem;
+      border: 3px solid #7d7d7d;
+      display: block;
+      text-align: center;
+      margin: 0 auto 10px auto;
+      border-radius: 50%;
+      background-color: {{ waitingRoomBg }};
+    }
+
+    .progressbar li:after {
+      width: 100%;
+      height: 3px;
+      content: '';
+      position: absolute;
+      background-color: #7d7d7d;
+      top: 1.5rem;
+      left: -50%;
+      z-index: -1;
+    }
+
+    .progressbar li:first-child:after {
+      content: none;
+    }
+
+    .progressbar li.active {
+      color: green;
+    }
+
+    .progressbar li.active:before {
+      border-color: #55b776;
+    }
+
+    .progressbar li.active + li:after {
+      background-color: #55b776;
+    }
+  </style>
+</head>
+<body>
+<section class="content">
+  {% if paymentStateResponse is defined and paymentStateResponse is not empty %}
+    <ul class="progressbar">
+      <li {% if judgedStep >= 1 %}class="active"{% endif %}>{{ "barion.cart"|trans }}</li>
+      <li {% if judgedStep >= 2 %}class="active"{% endif %}>{{ "barion.transaction" }}</li>
+      <li {% if judgedStep >= 3 %}class="active"{% endif %}>{{ "barion.done" }}</li>
+    </ul>
+    <h1>{{ paymentStateResponse.POSName }}</h1>
+    <h3>{{ "Your payment of"|trans }} <strong>{{ paymentStateResponse.total }}&nbsp;{{ paymentStateResponse.currency }}</strong></h3>
+    {% if judgedStatus == 1 %}
+      <div class="result" style="background-color: {{ waitingRoomPositiveFeedbackColor }}">{{ "barion.transaction.success"|trans }}</div>
+    {% elseif judgedStatus == -1 %}
+      <div class="result" style="background-color: {{ waitingRoomNegativeFeedbackColor }}">{{ "barion.transaction.failed"|trans }}</div>
+    {% else %}
+      <div class="result" style="background-color: {{ waitingRoomNeturalFeedbackColor }}">{{ "barion.transaction.netural"|trans }}</div>
+    {% endif %}
+  {% endif %}
+  {% if msg is defined %}
+    <p class="msg">{{ msg }}</p>
+  {% endif %}
+  <a href="{{ paymentStateResponse.paymentRequest.savedRedirectUrl|default(path(webshopDefaultRoute)) }}" class="back">{{ "back to the webshop"|trans }}</a>
+  {% if paymentStateResponse is defined and paymentStateResponse is not empty %}
+    <img src="{{ asset('/bundles/vaszevbarion/images/barion-card-payment-mark-2017-500px.png') }}" alt="Barion smart gateway" title="Barion smart gateway">
+  {% endif %}
+</section>
+{% include '@VaszevBarion/barion/pixel.html.twig' %}
+{% if judgedRefresh is defined and judgedRefresh %}
+  <script type="text/javascript">
+    setTimeout(function () {
+      window.location.replace('{{ path('bairon_waiting_room_check',{'paymentId':paymentStateResponse.paymentId,'tries':tries}) }}');
+    }, 5000);
+  </script>
+{% endif %}
+</body>
+</html>

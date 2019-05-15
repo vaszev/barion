@@ -348,7 +348,7 @@ class PaymentStateRequestModel extends BaseRequestModel {
   }
 }
 
-class PaymentStateResponseModel extends BaseResponseModel implements iBarionModel {
+class PaymentStateResponse extends BaseResponseModel implements iBarionModel {
   public $PaymentId;
   public $PaymentRequestId;
   public $OrderNumber;
@@ -1052,14 +1052,14 @@ class BarionClient {
   /**
    * Get detailed information about a given payment
    * @param string $paymentId The Id of the payment
-   * @return PaymentStateResponseModel Returns the response from the Barion API
+   * @return PaymentStateResponse Returns the response from the Barion API
    */
   public function GetPaymentState($paymentId) {
     $model = new PaymentStateRequestModel($paymentId);
     $model->POSKey = $this->POSKey;
     $url = $this->BARION_API_URL . "/v" . $this->APIVersion . API_ENDPOINT_PAYMENTSTATE;
     $response = $this->GetFromBarion($url, $model);
-    $ps = new PaymentStateResponseModel();
+    $ps = new PaymentStateResponse();
     if (!empty($response)) {
       $json = json_decode($response, true);
       $ps->fromJson($json);

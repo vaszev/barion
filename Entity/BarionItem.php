@@ -7,9 +7,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 
 /**
- * @ORM\Entity(repositoryClass="Vaszev\BarionBundle\Repository\BarionItemModelRepository")
+ * @ORM\Entity(repositoryClass="Vaszev\BarionBundle\Repository\BarionItemRepository")
  */
-class BarionItemModel extends Base {
+class BarionItem extends Base {
 
   /**
    * @var string
@@ -60,7 +60,7 @@ class BarionItemModel extends Base {
   private $SKU;
 
   /**
-   * @ORM\ManyToOne(targetEntity="Vaszev\BarionBundle\Entity\BarionPaymentTransactionModel", inversedBy="Items")
+   * @ORM\ManyToOne(targetEntity="BarionPaymentTransaction", inversedBy="Items")
    * @Assert\NotNull()
    */
   private $Transaction;

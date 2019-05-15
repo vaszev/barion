@@ -11,9 +11,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Vaszev\BarionBundle\Service\UILocale;
 
 /**
- * @ORM\Entity(repositoryClass="Vaszev\BarionBundle\Repository\BarionPaymentRequestModelRepository")
+ * @ORM\Entity(repositoryClass="Vaszev\BarionBundle\Repository\BarionPaymentRequestRepository")
  */
-class BarionPaymentRequestModel extends Base {
+class BarionPaymentRequest extends Base {
 
   /**
    * @var string
@@ -65,7 +65,7 @@ class BarionPaymentRequestModel extends Base {
   private $PayerHint;
 
   /**
-   * @ORM\OneToMany(targetEntity="Vaszev\BarionBundle\Entity\BarionPaymentTransactionModel", mappedBy="RequestModel")
+   * @ORM\OneToMany(targetEntity="BarionPaymentTransaction", mappedBy="Request")
    * @Assert\Count(min=1)
    */
   private $Transactions;
@@ -97,12 +97,21 @@ class BarionPaymentRequestModel extends Base {
   private $RecurrenceId;
 
   /**
+   * will be our waiting room
    * @var string
    * @ORM\Column(name="redirect_url", type="string", length=255)
    */
   private $RedirectUrl;
 
   /**
+   * user's webshop redirection after all
+   * @var string
+   * @ORM\Column(name="saved_redirect_url", type="string", length=255)
+   */
+  private $SavedRedirectUrl;
+
+  /**
+   * will be our callback listener
    * @var string
    * @ORM\Column(name="callback_url", type="string", length=255)
    */
@@ -115,18 +124,46 @@ class BarionPaymentRequestModel extends Base {
   private $Currency = Currency::HUF;
 
   /**
-   * @ORM\OneToOne(targetEntity="Vaszev\BarionBundle\Entity\BarionPaymentResponseModel", mappedBy="PaymentRequestId")
+   * @ORM\OneToOne(targetEntity="BarionPaymentResponse", mappedBy="PaymentRequest")
    */
-  private $PaymentResponseId;
+  private $PaymentResponse;
+
+  /**
+   * @ORM\OneToMany(targetEntity="BarionPaymentStateResponse", mappedBy="PaymentRequest")
+   * @ORM\OrderBy({"edited"="DESC"})
+   */
+  private $PaymentStates;
 
 
 
   /**
-   * BarionPaymentRequestModel constructor.
+   * BarionPaymentRequest constructor.
    */
   public function __construct() {
     parent::__construct();
     $this->Transactions = new ArrayCollection();
+    $this->PaymentStates = new ArrayCollection();
+  }
+
+
+
+  /**
+   * @return string
+   */
+  public function getSavedRedirectUrl(): string {
+    return $this->SavedRedirectUrl;
+  }
+
+
+
+  /**
+   * @param string $SavedRedirectUrl
+   * @return $this
+   */
+  public function setSavedRedirectUrl($SavedRedirectUrl) {
+    $this->SavedRedirectUrl = $SavedRedirectUrl;
+
+    return $this;
   }
 
 
@@ -134,8 +171,17 @@ class BarionPaymentRequestModel extends Base {
   /**
    * @return mixed
    */
-  public function getPaymentResponseId() {
-    return $this->PaymentResponseId;
+  public function getPaymentStates() {
+    return $this->PaymentStates;
+  }
+
+
+
+  /**
+   * @return BarionPaymentResponse
+   */
+  public function getPaymentResponse() {
+    return $this->PaymentResponse;
   }
 
 

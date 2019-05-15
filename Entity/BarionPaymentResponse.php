@@ -6,9 +6,9 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * @ORM\Entity(repositoryClass="Vaszev\BarionBundle\Repository\BarionPaymentResponseModelRepository")
+ * @ORM\Entity(repositoryClass="Vaszev\BarionBundle\Repository\BarionPaymentResponseRepository")
  */
-class BarionPaymentResponseModel extends Base {
+class BarionPaymentResponse extends Base {
 
   /**
    * @var string
@@ -17,10 +17,10 @@ class BarionPaymentResponseModel extends Base {
   private $PaymentId;
 
   /**
-   * @ORM\OneToOne(targetEntity="Vaszev\BarionBundle\Entity\BarionPaymentRequestModel", inversedBy="PaymentResponseId")
-   * @ORM\JoinColumn(name="payment_response_id", referencedColumnName="id")
+   * @ORM\OneToOne(targetEntity="BarionPaymentRequest", inversedBy="PaymentResponse")
+   * @ORM\JoinColumn(name="payment_request_id", referencedColumnName="id")
    */
-  private $PaymentRequestId;
+  private $PaymentRequest;
 
   /**
    * @var string
@@ -79,18 +79,18 @@ class BarionPaymentResponseModel extends Base {
   /**
    * @return mixed
    */
-  public function getPaymentRequestId() {
-    return $this->PaymentRequestId;
+  public function getPaymentRequest() {
+    return $this->PaymentRequest;
   }
 
 
 
   /**
-   * @param mixed $PaymentRequestId
+   * @param mixed $PaymentRequest
    * @return $this
    */
-  public function setPaymentRequestId($PaymentRequestId) {
-    $this->PaymentRequestId = $PaymentRequestId;
+  public function setPaymentRequest($PaymentRequest) {
+    $this->PaymentRequest = $PaymentRequest;
 
     return $this;
   }

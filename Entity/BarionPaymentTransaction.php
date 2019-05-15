@@ -4,14 +4,16 @@ namespace Vaszev\BarionBundle\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 use Vaszev\BarionBundle\Service\Currency;
 
 
 /**
- * @ORM\Entity(repositoryClass="Vaszev\BarionBundle\Repository\BarionPaymentTransactionModelRepository")
+ * @ORM\Entity(repositoryClass="Vaszev\BarionBundle\Repository\BarionPaymentTransactionRepository")
+ * @UniqueEntity(fields = {"ConnectedOrderId"}, ignoreNull=true)
  */
-class BarionPaymentTransactionModel extends Base {
+class BarionPaymentTransaction extends Base {
 
   /**
    * @var string
@@ -40,16 +42,16 @@ class BarionPaymentTransactionModel extends Base {
   private $Comment = null;
 
   /**
-   * @ORM\OneToMany(targetEntity="Vaszev\BarionBundle\Entity\BarionItemModel", mappedBy="Transaction", cascade={"persist"})
+   * @ORM\OneToMany(targetEntity="BarionItem", mappedBy="Transaction", cascade={"persist"})
    * @Assert\Count(min=1)
    */
   private $Items;
 
   /**
-   * @ORM\ManyToOne(targetEntity="Vaszev\BarionBundle\Entity\BarionPaymentRequestModel", inversedBy="Transactions", cascade={"persist"})
+   * @ORM\ManyToOne(targetEntity="BarionPaymentRequest", inversedBy="Transactions", cascade={"persist"})
    * @Assert\NotNull()
    */
-  private $RequestModel;
+  private $Request;
 
   /**
    * Using for B2B or C2C, currently not supported
@@ -57,14 +59,44 @@ class BarionPaymentTransactionModel extends Base {
    */
   private $PayeeTransactions;
 
+  /**
+   * ID of your OWN orders table. You can check the payment status with this later
+   * @var int
+   * @ORM\Column(name="connected_order_id", type="integer", options={"comment":"wire your webshop orders with this value"})
+   * @Assert\NotNull()
+   * @Assert\GreaterThan(value=0)
+   */
+  private $ConnectedOrderId;
+
 
 
   /**
-   * BarionPaymentTransactionModel constructor.
+   * BarionPaymentTransaction constructor.
    */
   public function __construct() {
     parent::__construct();
     $this->Items = new ArrayCollection();
+  }
+
+
+
+  /**
+   * @return int
+   */
+  public function getConnectedOrderId(): int {
+    return $this->ConnectedOrderId;
+  }
+
+
+
+  /**
+   * @param int $ConnectedOrderId
+   * @return $this
+   */
+  public function setConnectedOrderId($ConnectedOrderId) {
+    $this->ConnectedOrderId = $ConnectedOrderId;
+
+    return $this;
   }
 
 
@@ -163,7 +195,7 @@ class BarionPaymentTransactionModel extends Base {
 
 
   /**
-   * @param BarionItemModel[] $Items
+   * @param BarionItem[] $Items
    * @return $this
    */
   public function setItems($Items) {
@@ -177,7 +209,7 @@ class BarionPaymentTransactionModel extends Base {
 
 
   /**
-   * @param BarionItemModel $Item
+   * @param BarionItem $Item
    * @return $this
    */
   public function addItem($Item) {
@@ -193,20 +225,20 @@ class BarionPaymentTransactionModel extends Base {
 
 
   /**
-   * @return mixed
+   * @return BarionPaymentRequest
    */
-  public function getRequestModel() {
-    return $this->RequestModel;
+  public function getRequest() {
+    return $this->Request;
   }
 
 
 
   /**
-   * @param mixed $RequestModel
+   * @param mixed $Request
    * @return $this
    */
-  public function setRequestModel($RequestModel) {
-    $this->RequestModel = $RequestModel;
+  public function setRequest($Request) {
+    $this->Request = $Request;
 
     return $this;
   }

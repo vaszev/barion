@@ -24,7 +24,15 @@ Configure your credentials:
       apiVersion: 2
       sandbox: true
       payee: 'YOUR.SHOP.EMAIL@EXAMPLE.COM'
-      webshopName: 'YOUR_WEBSHOP_PREFIX'
+      pixelId: 'YOUR_BARION_PIXEL_ID'
+      webshopName: 'YOUR_WEBSHOP_PREFIX_YOU_WANT_TO_USE'
+      webshopDefaultRoute: 'YOUR_WEBSHOP_ROUTE_FOR_BACK_BUTTON_IF_NOT_AVAILABLE'
+      waitingRoomBg: '#fff'
+      waitingRoomColor: '#333'
+      waitingRoomAmountColor: 'tomato'
+      waitingRoomPositiveFeedbackColor: 'green'
+      waitingRoomNegativeFeedbackColor: 'red'
+      waitingRoomNeturalFeedbackColor: 'orange'
 
 Add the following to your routing:
 
@@ -36,6 +44,14 @@ Add the following to your routing:
       resource: "@VaszevBarionBundle/Controller"
       type:     annotation
       prefix:   /barion
+      
+Update doctrine's schema:
+
+`$ php bin/console doctrine:schema:update --force`
+
+Install assets:
+
+`$ php bin/console assets:install --symlink`
 
 ### Support
 

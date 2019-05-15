@@ -13,10 +13,11 @@ use Vaszev\BarionBundle\BarionLibrary\BarionClient;
 use Vaszev\BarionBundle\BarionLibrary\ItemModel;
 use Vaszev\BarionBundle\BarionLibrary\PaymentTransactionModel;
 use Vaszev\BarionBundle\BarionLibrary\PreparePaymentRequestModel;
-use Vaszev\BarionBundle\Entity\BarionItemModel;
-use Vaszev\BarionBundle\Entity\BarionPaymentRequestModel;
-use Vaszev\BarionBundle\Entity\BarionPaymentResponseModel;
-use Vaszev\BarionBundle\Entity\BarionPaymentTransactionModel;
+use Vaszev\BarionBundle\Entity\BarionItem;
+use Vaszev\BarionBundle\Entity\BarionPaymentRequest;
+use Vaszev\BarionBundle\Entity\BarionPaymentResponse;
+use Vaszev\BarionBundle\Entity\BarionPaymentStateResponse;
+use Vaszev\BarionBundle\Entity\BarionPaymentTransaction;
 
 // region +CONSTANTS
 
@@ -118,16 +119,103 @@ class Barion {
   private $webshopName;
   /** @var string */
   private $currency;
-  /** @var BarionPaymentTransactionModel */
-  private $transactionModel;
-  /** @var BarionItemModel[] */
-  private $itemModels = [];
-  /** @var BarionPaymentRequestModel */
-  private $requestModel;
+  /** @var BarionPaymentTransaction */
+  private $transaction;
+  /** @var BarionItem[] */
+  private $items = [];
+  /** @var BarionPaymentRequest */
+  private $request;
   /** @var BarionClient */
   private $client;
 
+  // region +JUDGES
 
+
+
+  /**
+   * return as 1: positive, 0: netural, -1: negative
+   * @param $status
+   * @return int|null
+   */
+  static function judgeStatus($status): int {
+    switch ($status) {
+      case PaymentStatus::Canceled:
+      case PaymentStatus::Expired:
+      case PaymentStatus::Failed:
+        return -1;
+        break;
+      case PaymentStatus::Succeeded:
+        return 1;
+        break;
+      case PaymentStatus::InProgress:
+      case PaymentStatus::PartiallySucceeded:
+      case PaymentStatus::Prepared:
+      case PaymentStatus::Reserved:
+      case PaymentStatus::Started:
+        return 0;
+        break;
+    }
+
+    return 0;
+  }
+
+
+
+  /**
+   * @param $status
+   * @return int
+   */
+  static function judgeStep($status): int {
+    switch ($status) {
+      case PaymentStatus::InProgress:
+      case PaymentStatus::PartiallySucceeded:
+      case PaymentStatus::Reserved:
+      case PaymentStatus::Canceled:
+      case PaymentStatus::Expired:
+      case PaymentStatus::Failed:
+        return 2;
+        break;
+      case PaymentStatus::Succeeded:
+        return 3;
+        break;
+      case PaymentStatus::Prepared:
+      case PaymentStatus::Started:
+        return 1;
+        break;
+    }
+
+    return 1;
+  }
+
+
+
+  /**
+   * @param $status
+   * @return bool
+   */
+  static function judgeRefresh($status): bool {
+    switch ($status) {
+      case PaymentStatus::InProgress:
+      case PaymentStatus::PartiallySucceeded:
+      case PaymentStatus::Reserved:
+      case PaymentStatus::Prepared:
+      case PaymentStatus::Started:
+        return true;
+        break;
+      case PaymentStatus::Failed:
+      case PaymentStatus::Expired:
+      case PaymentStatus::Succeeded:
+      case PaymentStatus::Canceled:
+        return false;
+        break;
+    }
+
+    return false;
+  }
+
+
+
+  // endregion
 
   public function __construct(TranslatorInterface $translator, ContainerInterface $container, EntityManagerInterface $em, ValidatorInterface $validator) {
     $this->translator = $translator;
@@ -138,23 +226,91 @@ class Barion {
 
 
 
+  public function reset() {
+    $this->redirectURL = null;
+    $this->webshopName = null;
+    $this->currency = null;
+    $this->transaction = null;
+    $this->items = [];
+    $this->request = null;
+    $this->client = null;
+  }
+
+
+
   /**
    * @param $redirectURL
    * @param string $currency
    * @return $this
    * @throws \Exception
    */
-  public function init($redirectURL, $currency = Currency::HUF) {
+  public function initShopping($redirectURL, $currency = Currency::HUF) {
     $posKey = $this->container->getParameter('vaszev_barion.posKey');
     $apiVersion = $this->container->getParameter('vaszev_barion.apiVersion');
     $sandbox = $this->container->getParameter('vaszev_barion.sandbox');
     $webshopName = $this->container->getParameter('vaszev_barion.webshopName');
+    $this->reset();
     $this->webshopName = $webshopName;
     $this->redirectURL = $redirectURL;
     $this->currency = $currency;
     $this->client = new BarionClient($posKey, $apiVersion, ($sandbox ? BarionEnvironment::Test : BarionEnvironment::Prod));
 
     return $this;
+  }
+
+
+
+  /**
+   * @param $paymentId
+   * @return BarionPaymentStateResponse
+   * @throws \Exception
+   */
+  public function paymentState($paymentId) {
+    $posKey = $this->container->getParameter('vaszev_barion.posKey');
+    $apiVersion = $this->container->getParameter('vaszev_barion.apiVersion');
+    $sandbox = $this->container->getParameter('vaszev_barion.sandbox');
+    $client = new BarionClient($posKey, $apiVersion, ($sandbox ? BarionEnvironment::Test : BarionEnvironment::Prod));
+    $paymentDetails = $client->GetPaymentState($paymentId);
+    if (empty($paymentDetails) || $paymentDetails->Errors) {
+      throw new \Exception("Unable to get payment state details.");
+    }
+    // save if needed
+    $paymentRequestRepo = $this->em->getRepository(BarionPaymentRequest::class);
+    $paymentStateResponseRepo = $this->em->getRepository(BarionPaymentStateResponse::class);
+    $paymentStateResponse = $paymentStateResponseRepo->findOneBy(['PaymentId' => $paymentId, 'Status' => $paymentDetails->Status]);
+    if (empty($paymentStateResponse)) {
+      $paymentStateResponse = new BarionPaymentStateResponse();
+    }
+    $paymentStateResponse->setPaymentId($paymentDetails->PaymentId)
+                         ->setStatus($paymentDetails->Status)
+                         ->setPaymentRequest($paymentRequestRepo->find((int)$paymentDetails->PaymentRequestId))
+                         ->setOrderNumber($paymentDetails->OrderNumber)
+                         ->setPOSId($paymentDetails->POSId)
+                         ->setPOSName($paymentDetails->POSName)
+                         ->setPOSOwnerEmail($paymentDetails->POSOwnerEmail)
+                         ->setPaymentType($paymentDetails->PaymentType)
+                         ->setFundingSource($paymentDetails->FundingSource)
+                         ->setAllowedFundingSources($paymentDetails->AllowedFundingSources)
+                         ->setGuestCheckout($paymentDetails->GuestCheckout)
+                         ->setCreatedAt($paymentDetails->CreatedAt)
+                         ->setValidUntil($paymentDetails->ValidUntil)
+                         ->setCompletedAt($paymentDetails->CompletedAt)
+                         ->setReservedUntil($paymentDetails->ReservedUntil)
+                         ->setTotal($paymentDetails->Total)
+                         ->setCurrency($paymentDetails->Currency)
+                         ->setRecurrenceResult($paymentDetails->RecurrenceResult)
+                         ->setSuggestedLocale($paymentDetails->SuggestedLocale)
+                         ->setFraudRiskScore($paymentDetails->FraudRiskScore)
+                         ->setRedirectUrl($paymentDetails->RedirectUrl)
+                         ->setCallbackUrl($paymentDetails->CallbackUrl);
+    try {
+      $this->em->persist($paymentStateResponse);
+      $this->em->flush();
+    } catch (\Exception $e) {
+      throw new \Exception('Payment state cannot be flushed.');
+    }
+
+    return $paymentStateResponse;
   }
 
 
@@ -170,23 +326,23 @@ class Barion {
    * @throws \Exception
    */
   public function addItem($name, $description, int $quantity, float $unitPrice, $sku, $unit = 'piece') {
-    if (empty($this->transactionModel)) {
-      throw new \Exception('Transaction model not found. Call "createTransactionModel" first');
+    if (empty($this->transaction)) {
+      throw new \Exception('Transaction not found. Call "createTransaction" first');
     }
-    foreach ($this->itemModels as $itemModel) {
-      if ($itemModel->getSKU() == $sku) {
+    foreach ($this->items as $item) {
+      if ($item->getSKU() == $sku) {
         throw new \Exception('SKU (' . $sku . ') already exists at item (' . $name . ')');
       }
     }
-    $itemModel = new BarionItemModel();
-    $itemModel->setName($name)
-              ->setDescription($description)
-              ->setQuantity($quantity)
-              ->setUnit($unit)
-              ->setUnitPrice($unitPrice)
-              ->setItemTotal($quantity * $unitPrice)
-              ->setSKU($sku);
-    $this->itemModels[] = $itemModel;
+    $item = new BarionItem();
+    $item->setName($name)
+         ->setDescription($description)
+         ->setQuantity($quantity)
+         ->setUnit($unit)
+         ->setUnitPrice($unitPrice)
+         ->setItemTotal($quantity * $unitPrice)
+         ->setSKU($sku);
+    $this->items[] = $item;
 
     return $this;
   }
@@ -194,19 +350,21 @@ class Barion {
 
 
   /**
+   * @param int $connetedOrderId
    * @param null $comment
    * @return $this
    * @throws \Exception
    */
-  public function createTransactionModel($comment = null) {
+  public function createTransaction(int $connetedOrderId, $comment = null) {
     if (empty($this->client)) {
       throw new \Exception('Wrapper not initialized. Call "init" first');
     }
-    $transactionModel = new BarionPaymentTransactionModel();
-    $transactionModel->setPayee($this->container->getParameter('vaszev_barion.payee'))
-                     ->setCurrency($this->currency)
-                     ->setComment($comment);
-    $this->transactionModel = $transactionModel;
+    $transaction = new BarionPaymentTransaction();
+    $transaction->setPayee($this->container->getParameter('vaszev_barion.payee'))
+                ->setCurrency($this->currency)
+                ->setConnectedOrderId($connetedOrderId)
+                ->setComment($comment);
+    $this->transaction = $transaction;
 
     return $this;
   }
@@ -220,24 +378,25 @@ class Barion {
    * @return $this
    * @throws \Exception
    */
-  public function preparePaymentRequestModel($payerHint = 'user@example.com', $shippingAddress = '12345 NJ, Example ave. 6.', $locale = UILocale::HU) {
+  public function preparePaymentRequest($payerHint = 'user@example.com', $shippingAddress = '12345 NJ, Example ave. 6.', $locale = UILocale::HU) {
     if (empty($this->client)) {
       throw new \Exception('Wrapper not initialized. Call "init" first');
     }
-    if (empty($this->transactionModel)) {
-      throw new \Exception('Empty transaction model. Call "createTransactionModel" first');
+    if (empty($this->transaction)) {
+      throw new \Exception('Empty transaction. Call "createTransaction" first');
     }
-    $requestModel = new BarionPaymentRequestModel();
-    $requestModel->setGuestCheckout(true)
-                 ->setPaymentType(PaymentType::Immediate)
-                 ->setFundingSources([FundingSourceType::All])
-                 ->setPayerHint($payerHint)
-                 ->setLocale($locale)
-                 ->setCurrency($this->currency)
-                 ->setShippingAddress($shippingAddress)
-                 ->setRedirectUrl($this->redirectURL)
-                 ->setCallbackUrl($this->container->get('router')->generate('barion_callback', [], UrlGeneratorInterface::ABSOLUTE_URL));
-    $this->requestModel = $requestModel;
+    $request = new BarionPaymentRequest();
+    $request->setGuestCheckout(true)
+            ->setPaymentType(PaymentType::Immediate)
+            ->setFundingSources([FundingSourceType::All])
+            ->setPayerHint($payerHint)
+            ->setLocale($locale)
+            ->setCurrency($this->currency)
+            ->setShippingAddress($shippingAddress)
+            ->setSavedRedirectUrl($this->redirectURL)
+            ->setRedirectUrl($this->container->get('router')->generate('bairon_waiting_room', [], UrlGeneratorInterface::ABSOLUTE_URL))
+            ->setCallbackUrl($this->container->get('router')->generate('barion_callback', [], UrlGeneratorInterface::ABSOLUTE_URL));
+    $this->request = $request;
 
     return $this;
   }
@@ -245,79 +404,80 @@ class Barion {
 
 
   /**
-   * @return BarionPaymentTransactionModel
+   * @return BarionPaymentTransaction
    * @throws \Exception
    */
   private function prepareVerifiedTransaction() {
     if (empty($this->client)) {
       throw new \Exception('Wrapper not initialized. Call "init" first');
     }
-    if (empty($this->requestModel)) {
-      throw new \Exception('Empty request model. Call "preparePaymentRequestModel" first');
+    if (empty($this->request)) {
+      throw new \Exception('Empty request. Call "preparePaymentRequest" first');
     }
-    if (empty($this->transactionModel)) {
-      throw new \Exception('Transaction model not found. Call "createTransactionModel" first');
+    if (empty($this->transaction)) {
+      throw new \Exception('Transaction not found. Call "createTransaction" first');
     }
-    if (empty($this->itemModels)) {
-      throw new \Exception('Item model not found. Call "addItem" first');
+    if (empty($this->items)) {
+      throw new \Exception('Item not found. Call "addItem" first');
     }
-    // save requestmodel and transaction
-    $this->transactionModel->setRequestModel($this->requestModel)
-                           ->setItems($this->itemModels);
-    $errors = $this->validator->validate($this->transactionModel);
+    // save request and transaction
+    $this->transaction->setRequest($this->request)
+                      ->setItems($this->items);
+    $errors = $this->validator->validate($this->transaction);
     if (count($errors) > 0) {
       $errorsString = (string)$errors;
       throw new \Exception($errorsString);
     }
     try {
-      $this->em->persist($this->transactionModel);
+      $this->em->persist($this->transaction);
       $this->em->flush();
     } catch (\Exception $e) {
-      throw new \Exception('Transaction model / Request model / Item model cannot be flushed. Check mandatory fields');
+      throw new \Exception('Transaction / Request / Item cannot be flushed. Check mandatory fields');
     }
 
-    return $this->transactionModel;
+    return $this->transaction;
   }
 
 
 
   /**
+   * @return string
    * @throws \Exception
    */
-  public function send() {
-    $paymentTrModel = $this->prepareVerifiedTransaction();
+  public function closeAndGetPaymentURL() {
+    $paymentTransaction = $this->prepareVerifiedTransaction();
     $trans = new PaymentTransactionModel();
-    $trans->POSTransactionId = $paymentTrModel->getId();
-    $trans->Payee = $paymentTrModel->getPayee();
-    $trans->Total = $paymentTrModel->getTotal();
-    $trans->Currency = $paymentTrModel->getCurrency();
-    $trans->Comment = $paymentTrModel->getComment();
-    /** @var BarionItemModel $itemModel */
-    foreach ($paymentTrModel->getItems() as $itemModel) {
-      $item = new ItemModel();
-      $item->Name = $itemModel->getName();
-      $item->Description = $itemModel->getDescription();
-      $item->Quantity = $itemModel->getQuantity();
-      $item->Unit = $itemModel->getUnit();
-      $item->UnitPrice = $itemModel->getUnitPrice();
-      $item->ItemTotal = $itemModel->getItemTotal();
-      $item->SKU = $itemModel->getSKU();
-      $trans->AddItem($item);
+    $trans->POSTransactionId = $paymentTransaction->getId();
+    $trans->Payee = $paymentTransaction->getPayee();
+    $trans->Total = $paymentTransaction->getTotal();
+    $trans->Currency = $paymentTransaction->getCurrency();
+    $trans->Comment = $paymentTransaction->getComment();
+    /** @var BarionItem $item */
+    foreach ($paymentTransaction->getItems() as $item) {
+      $itemModel = new ItemModel();
+      $itemModel->Name = $item->getName();
+      $itemModel->Description = $item->getDescription();
+      $itemModel->Quantity = $item->getQuantity();
+      $itemModel->Unit = $item->getUnit();
+      $itemModel->UnitPrice = $item->getUnitPrice();
+      $itemModel->ItemTotal = $item->getItemTotal();
+      $itemModel->SKU = $item->getSKU();
+      $trans->AddItem($itemModel);
     }
-    /** @var BarionPaymentRequestModel $paymentRModel */
-    $paymentRModel = $paymentTrModel->getRequestModel();
+    /** @var BarionPaymentRequest $paymentRequest */
+    $paymentRequest = $paymentTransaction->getRequest();
     $ppr = new PreparePaymentRequestModel();
-    $ppr->GuestCheckout = $paymentRModel->isGuestCheckout();
-    $ppr->PaymentType = $paymentRModel->getPaymentType();
-    $ppr->FundingSources = $paymentRModel->getFundingSources();
-    $ppr->PaymentRequestId = $paymentRModel->getId();
-    $ppr->PayerHint = $paymentRModel->getPayerHint();
-    $ppr->Locale = $paymentRModel->getLocale();
-    $ppr->OrderNumber = implode("-", [$this->webshopName, date('y/n/j'), $paymentRModel->getId()]);
-    $ppr->Currency = $paymentRModel->getCurrency();
-    $ppr->ShippingAddress = $paymentRModel->getShippingAddress();
-    $ppr->RedirectUrl = $paymentRModel->getRedirectUrl();
-    $ppr->CallbackUrl = $paymentRModel->getCallbackUrl();
+    $ppr->GuestCheckout = $paymentRequest->isGuestCheckout();
+    $ppr->PaymentType = $paymentRequest->getPaymentType();
+    $ppr->FundingSources = $paymentRequest->getFundingSources();
+    $ppr->PaymentRequestId = $paymentRequest->getId();
+    $ppr->PayerHint = $paymentRequest->getPayerHint();
+    $ppr->Locale = $paymentRequest->getLocale();
+    $ppr->OrderNumber = implode("-", [$this->webshopName, date('y/n/j'), $paymentRequest->getId()]);
+    $ppr->Currency = $paymentRequest->getCurrency();
+    $ppr->ShippingAddress = $paymentRequest->getShippingAddress();
+    $ppr->RedirectUrl = $paymentRequest->getRedirectUrl();
+    $ppr->CallbackUrl = $paymentRequest->getCallbackUrl();
     $ppr->AddTransaction($trans);
     // prepare for sending
     $myPayment = $this->client->PreparePayment($ppr);
@@ -330,19 +490,49 @@ class Barion {
       throw new \Exception($firstError->Title . ' / ' . $firstError->Description);
     }
     // store response
-    $paymentRequestRepo = $this->em->getRepository(BarionPaymentRequestModel::class);
-    $responseModel = new BarionPaymentResponseModel();
-    $responseModel->setPaymentId($myPayment->PaymentId)
-                  ->setPaymentRequestId($paymentRequestRepo->find((int)$myPayment->PaymentRequestId))
-                  ->setStatus($myPayment->Status)
-                  ->setQRUrl($myPayment->QRUrl)
-                  ->setRecurrenceResult($myPayment->RecurrenceResult)
-                  ->setPaymentRedirectUrl($myPayment->PaymentRedirectUrl);
+    $paymentRequestRepo = $this->em->getRepository(BarionPaymentRequest::class);
+    $response = new BarionPaymentResponse();
+    $response->setPaymentId($myPayment->PaymentId)
+             ->setPaymentRequest($paymentRequestRepo->find((int)$myPayment->PaymentRequestId))
+             ->setStatus($myPayment->Status)
+             ->setQRUrl($myPayment->QRUrl)
+             ->setRecurrenceResult($myPayment->RecurrenceResult)
+             ->setPaymentRedirectUrl($myPayment->PaymentRedirectUrl);
     try {
-      $this->em->persist($responseModel);
+      $this->em->persist($response);
       $this->em->flush();
     } catch (\Exception $e) {
-      throw new \Exception('Response model cannot be flushed.');
+      throw new \Exception('Response cannot be flushed.');
+    }
+    $this->reset();
+
+    return $myPayment->PaymentRedirectUrl;
+  }
+
+
+
+  /**
+   * @param int $myOrderId
+   * @return bool
+   */
+  public function checkMyOrderBeingPaid(int $myOrderId): bool {
+    try {
+      $paymentTransactionRepo = $this->em->getRepository(BarionPaymentTransaction::class);
+      $transaction = $paymentTransactionRepo->findOneBy(['ConnectedOrderId' => $myOrderId]);
+      if (empty($transaction)) {
+        throw new \Exception('transaction not found');
+      }
+      $request = $transaction->getRequest();
+      $response = $request->getPaymentResponse();
+      $status = $response->getStatus();
+      if ($status != PaymentStatus::Succeeded) {
+        throw new \Exception('not paid (yet)');
+      }
+
+      return true;
+    } catch (\Exception $e) {
+      return false;
     }
   }
+
 }

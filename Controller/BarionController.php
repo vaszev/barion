@@ -90,7 +90,7 @@ class BarionController extends AbstractController {
         throw new \Exception('Missing paymentId');
       }
       $responseRepo = $this->getDoctrine()->getRepository(BarionPaymentResponse::class);
-      $valid = $responseRepo->findOneBy(['PaymentId']);
+      $valid = $responseRepo->findOneBy(['PaymentId' => $paymentId]);
       if (empty($valid)) {
         throw new \Exception('Invalid paymentId');
       }
@@ -103,6 +103,18 @@ class BarionController extends AbstractController {
     }
 
     return $response;
+  }
+
+
+
+  /**
+   * render this into any of your webshop pages
+   * @Template("@VaszevBarion/barion/pixel.html.twig")
+   */
+  public function pixel() {
+    $ret = ['pixelId' => $this->getParameter('vaszev_barion.pixelId'),];
+
+    return $ret;
   }
 
 }

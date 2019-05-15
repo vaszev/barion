@@ -53,12 +53,31 @@ Install assets:
 
 `$ php bin/console assets:install --symlink`
 
-### Support
+Include Barion's pixel into your webshop pages:
+
+`{{ render(controller('Vaszev\\BarionBundle\\Controller\\BarionController::pixel')) }}`
+
+### Example
 
 You have to gather your items into **one** transactions that could have **more items**:
 
-    - PaymentRequestModel (1:PTM)
-      - PaymentTransactionModel (PRQ:1)
-        - ItemModel (PTM:N)
-        - ItemModel
-        - ItemModel
+```php
+$myWebsopTransactionId = 8211;
+$redirectURL = $this->generateUrl('webshop', [], UrlGeneratorInterface::ABSOLUTE_URL);
+try {
+  $barion->initShopping($redirectURL)->createTransaction($myWebsopTransactionId, 'Please post it ASAP!');
+  $barion->addItem('Product name','Description',2,2900,'ProdId#5312','Piece');
+  $barion->addItem('Product name 2','Description so far',1,1000,'ProdId#4362','Meter');
+  $barion->addItem('Product name 3','Description will fit',1,5900,'ProdId#7309','L');
+  $payURL = $barion->preparePaymentRequest('buyer@example.com', '1234 Hungary, Budapest...')->closeAndGetPaymentURL();
+
+  ...
+
+} catch (\Exception $e) {
+  // ops! something went wrong...
+}
+```
+
+Check if payment received:
+
+`$barion->checkMyOrderBeingPaid($myWebsopTransactionId);`

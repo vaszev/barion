@@ -112,4 +112,5 @@ $barion->getMyOrderResponse($myWebsopTransactionId);
 $barion->getMyOrderItems($myWebsopTransactionId);
 $barion->getMyOrderRequest($myWebsopTransactionId);
 $barion->getMyOrderTransaction($myWebsopTransactionId);
+$barion->getMyOrderStateResponses($myWebsopTransactionId);
 ```

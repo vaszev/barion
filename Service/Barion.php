@@ -306,6 +306,25 @@ class Barion {
 
   /**
    * @param int $myOrderId
+   * @return BarionPaymentStateResponse[]
+   */
+  public function getMyOrderStateResponses(int $myOrderId) {
+    try {
+      $request = $this->getMyOrderRequest($myOrderId);
+      if (empty($request)) {
+        throw new \Exception('request not found');
+      }
+
+      return $request->getPaymentStates();
+    } catch (\Exception $e) {
+      return null;
+    }
+  }
+
+
+
+  /**
+   * @param int $myOrderId
    * @return BarionPaymentTransaction
    */
   public function getMyOrderTransaction(int $myOrderId) {

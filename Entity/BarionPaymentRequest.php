@@ -4,10 +4,10 @@ namespace Vaszev\BarionBundle\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 use Vaszev\BarionBundle\Service\Currency;
 use Vaszev\BarionBundle\Service\FundingSourceType;
 use Vaszev\BarionBundle\Service\PaymentType;
-use Symfony\Component\Validator\Constraints as Assert;
 use Vaszev\BarionBundle\Service\UILocale;
 
 /**

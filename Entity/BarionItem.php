@@ -39,7 +39,6 @@ class BarionItem extends Base {
 
   /**
    * @var float
-   * @Assert\GreaterThan(value="0")
    * @ORM\Column(name="unit_price", type="decimal", precision=17, scale=2)
    * @Assert\GreaterThan(value="0")
    */
@@ -49,7 +48,6 @@ class BarionItem extends Base {
    * @var float
    * @Assert\GreaterThan(value="0")
    * @ORM\Column(name="item_total", type="decimal", precision=17, scale=2)
-   * @Assert\GreaterThan(value="0")
    */
   private $ItemTotal;
 

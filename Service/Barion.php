@@ -224,7 +224,133 @@ class Barion {
     $this->validator = $validator;
   }
 
+// region +CONNECTED-ORDER-GETTERS
 
+
+
+  /**
+   * @param int $myOrderId
+   * @return string
+   */
+  public function getMyOrderPaymentId(int $myOrderId) {
+    try {
+      $response = $this->getMyOrderResponse($myOrderId);
+      if (empty($response)) {
+        throw new \Exception('response not found');
+      }
+
+      return $response->getPaymentId();
+    } catch (\Exception $e) {
+      return null;
+    }
+  }
+
+
+
+  /**
+   * @param int $myOrderId
+   * @return BarionPaymentResponse
+   */
+  public function getMyOrderResponse(int $myOrderId) {
+    try {
+      $request = $this->getMyOrderRequest($myOrderId);
+      if (empty($request)) {
+        throw new \Exception('request not found');
+      }
+
+      return $request->getPaymentResponse();
+    } catch (\Exception $e) {
+      return null;
+    }
+  }
+
+
+
+  /**
+   * @param int $myOrderId
+   * @return BarionItem[]
+   */
+  public function getMyOrderItems(int $myOrderId) {
+    try {
+      $transaction = $this->getMyOrderTransaction($myOrderId);
+      if (empty($transaction)) {
+        throw new \Exception('transaction not found');
+      }
+
+      return $transaction->getItems();
+    } catch (\Exception $e) {
+      return null;
+    }
+  }
+
+
+
+  /**
+   * @param int $myOrderId
+   * @return BarionPaymentRequest
+   */
+  public function getMyOrderRequest(int $myOrderId) {
+    try {
+      $transaction = $this->getMyOrderTransaction($myOrderId);
+      if (empty($transaction)) {
+        throw new \Exception('transaction not found');
+      }
+
+      return $transaction->getRequest();
+    } catch (\Exception $e) {
+      return null;
+    }
+  }
+
+
+
+  /**
+   * @param int $myOrderId
+   * @return BarionPaymentTransaction
+   */
+  public function getMyOrderTransaction(int $myOrderId) {
+    try {
+      $paymentTransactionRepo = $this->em->getRepository(BarionPaymentTransaction::class);
+      $transaction = $paymentTransactionRepo->findOneBy(['ConnectedOrderId' => $myOrderId]);
+      if (empty($transaction)) {
+        throw new \Exception('transaction not found');
+      }
+
+      return $transaction;
+    } catch (\Exception $e) {
+      return null;
+    }
+  }
+
+
+
+  /**
+   * @param int $myOrderId
+   * @return bool
+   */
+  public function checkMyOrderBeingPaid(int $myOrderId): bool {
+    try {
+      $paymentTransactionRepo = $this->em->getRepository(BarionPaymentTransaction::class);
+      $transaction = $paymentTransactionRepo->findOneBy(['ConnectedOrderId' => $myOrderId]);
+      if (empty($transaction)) {
+        throw new \Exception('transaction not found');
+      }
+      $request = $transaction->getRequest();
+      $response = $request->getPaymentResponse();
+      $status = $response->getStatus();
+      if ($status != PaymentStatus::Succeeded) {
+        throw new \Exception('not paid (yet)');
+      }
+
+      return true;
+    } catch (\Exception $e) {
+      return false;
+    }
+  }
+
+
+
+// endregion
 
   public function reset() {
     $this->redirectURL = null;
@@ -514,30 +640,5 @@ class Barion {
     return $myPayment->PaymentRedirectUrl;
   }
 
-
-
-  /**
-   * @param int $myOrderId
-   * @return bool
-   */
-  public function checkMyOrderBeingPaid(int $myOrderId): bool {
-    try {
-      $paymentTransactionRepo = $this->em->getRepository(BarionPaymentTransaction::class);
-      $transaction = $paymentTransactionRepo->findOneBy(['ConnectedOrderId' => $myOrderId]);
-      if (empty($transaction)) {
-        throw new \Exception('transaction not found');
-      }
-      $request = $transaction->getRequest();
-      $response = $request->getPaymentResponse();
-      $status = $response->getStatus();
-      if ($status != PaymentStatus::Succeeded) {
-        throw new \Exception('not paid (yet)');
-      }
-
-      return true;
-    } catch (\Exception $e) {
-      return false;
-    }
-  }
 
 }

@@ -146,7 +146,7 @@
       <li {% if judgedStep >= 3 %}class="active"{% endif %}>{{ "barion.done"|trans }}</li>
     </ul>
     <h1>{{ paymentStateResponse.POSName }}</h1>
-    <h3>{{ "Your payment of"|trans }} <strong>{{ paymentStateResponse.total }}&nbsp;{{ paymentStateResponse.currency }}</strong></h3>
+    <h3>{{ "barion.Your.payment.of"|trans }} <strong>{{ paymentStateResponse.total }}&nbsp;{{ paymentStateResponse.currency }}</strong></h3>
     {% if judgedStatus == 1 %}
       <div class="result" style="background-color: {{ waitingRoomPositiveFeedbackColor }}">{{ "barion.transaction.success"|trans }}</div>
     {% elseif judgedStatus == -1 %}
@@ -158,7 +158,7 @@
   {% if msg is defined %}
     <p class="msg">{{ msg }}</p>
   {% endif %}
-  <a href="{{ paymentStateResponse.paymentRequest.savedRedirectUrl|default(path(webshopDefaultRoute)) }}" class="back">{{ "back to the webshop"|trans }}</a>
+  <a href="{{ paymentStateResponse.paymentRequest.savedRedirectUrl|default(path(webshopDefaultRoute)) }}" class="back">{{ "barion.back.to.the.webshop"|trans }}</a>
   {% if paymentStateResponse is defined and paymentStateResponse is not empty %}
     <img src="{{ asset('/bundles/vaszevbarion/images/barion-card-payment-mark-2017-500px.png') }}" alt="Barion smart gateway" title="Barion smart gateway">
   {% endif %}

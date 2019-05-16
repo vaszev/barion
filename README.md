@@ -19,32 +19,36 @@ Please note that this bundle is for simple **B2C** Immediate payment type only. 
 
 Configure your credentials:
 
-    vaszev_barion:
-      posKey: 'YOUR_POS_KEY_FROM_BARION'
-      apiVersion: 2
-      sandbox: true
-      payee: 'YOUR.SHOP.EMAIL@EXAMPLE.COM'
-      pixelId: 'YOUR_BARION_PIXEL_ID'
-      webshopName: 'YOUR_WEBSHOP_PREFIX_YOU_WANT_TO_USE'
-      webshopDefaultRoute: 'YOUR_WEBSHOP_ROUTE_FOR_BACK_BUTTON_IF_NOT_AVAILABLE'
-      waitingRoomBg: '#fff'
-      waitingRoomColor: '#333'
-      waitingRoomAmountColor: 'tomato'
-      waitingRoomPositiveFeedbackColor: 'green'
-      waitingRoomNegativeFeedbackColor: 'red'
-      waitingRoomNeturalFeedbackColor: 'orange'
-      waitingRoomGoogleFont: 'Lato'
+`/config/vaszev.yaml`
+
+```yaml
+vaszev_barion:
+  posKey: 'YOUR_POS_KEY_FROM_BARION'
+  apiVersion: 2
+  sandbox: true
+  payee: 'YOUR.SHOP.EMAIL@EXAMPLE.COM'
+  pixelId: 'YOUR_BARION_PIXEL_ID'
+  webshopName: 'YOUR_WEBSHOP_PREFIX_YOU_WANT_TO_USE'
+  webshopDefaultRoute: 'YOUR_WEBSHOP_ROUTE_FOR_BACK_BUTTON_IF_NOT_AVAILABLE'
+  waitingRoomBg: '#fff'
+  waitingRoomColor: '#333'
+  waitingRoomAmountColor: 'tomato'
+  waitingRoomPositiveFeedbackColor: 'green'
+  waitingRoomNegativeFeedbackColor: 'red'
+  waitingRoomNeturalFeedbackColor: 'orange'
+  waitingRoomGoogleFont: 'Lato'
+```
 
 Add the following to your routing:
 
-    /config/routes.yaml:
-    
-    ...
-    
-    _barion:
-      resource: "@VaszevBarionBundle/Controller"
-      type:     annotation
-      prefix:   /barion
+`/config/routes.yaml`
+
+```yaml
+_barion:
+  resource: "@VaszevBarionBundle/Controller"
+  type:     annotation
+  prefix:   /barion
+```
       
 Update doctrine's schema:
 
@@ -56,7 +60,22 @@ Install assets:
 
 Include Barion's pixel into your webshop pages:
 
-`{{ render(controller('Vaszev\\BarionBundle\\Controller\\BarionController::pixel')) }}`
+```twig
+{{ render(controller('Vaszev\\BarionBundle\\Controller\\BarionController::pixel')) }}
+```
+
+Adding translations :
+
+```yaml
+'barion.cart': ''
+'barion.transaction': ''
+'barion.done': ''
+'barion.Your.payment.of': ''
+'barion.transaction.failed': ''
+'barion.transaction.success': ''
+'barion.transaction.neutral': ''
+'barion.back.to.the.webshop': ''
+```
 
 ### Example
 
@@ -75,10 +94,22 @@ try {
   ...
 
 } catch (\Exception $e) {
-  // ops! something went wrong...
+  // yikes! something went wrong...
 }
 ```
 
-Check if payment received:
+Check if your order's payment received:
 
-`$barion->checkMyOrderBeingPaid($myWebsopTransactionId);`
+```php
+$barion->checkMyOrderBeingPaid($myWebsopTransactionId);
+```
+
+Call getters on your order:
+
+```php
+$barion->getMyOrderPaymentId($myWebsopTransactionId);
+$barion->getMyOrderResponse($myWebsopTransactionId);
+$barion->getMyOrderItems($myWebsopTransactionId);
+$barion->getMyOrderRequest($myWebsopTransactionId);
+$barion->getMyOrderTransaction($myWebsopTransactionId);
+```

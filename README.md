@@ -33,6 +33,7 @@ Configure your credentials:
       waitingRoomPositiveFeedbackColor: 'green'
       waitingRoomNegativeFeedbackColor: 'red'
       waitingRoomNeturalFeedbackColor: 'orange'
+      waitingRoomGoogleFont: 'Lato'
 
 Add the following to your routing:
 

@@ -445,6 +445,7 @@ class Barion {
    * @throws \Exception
    */
   public function closeAndGetPaymentURL() {
+    $env = $_SERVER['APP_ENV'] ?? 'dev';
     $paymentTransaction = $this->prepareVerifiedTransaction();
     $trans = new PaymentTransactionModel();
     $trans->POSTransactionId = $paymentTransaction->getId();
@@ -477,7 +478,11 @@ class Barion {
     $ppr->Currency = $paymentRequest->getCurrency();
     $ppr->ShippingAddress = $paymentRequest->getShippingAddress();
     $ppr->RedirectUrl = $paymentRequest->getRedirectUrl();
-    $ppr->CallbackUrl = $paymentRequest->getCallbackUrl();
+    if ($env == 'dev') {
+      $ppr->CallbackUrl = null;
+    } else {
+      $ppr->CallbackUrl = $paymentRequest->getCallbackUrl();
+    }
     $ppr->AddTransaction($trans);
     // prepare for sending
     $myPayment = $this->client->PreparePayment($ppr);

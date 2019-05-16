@@ -47,6 +47,7 @@ class BarionController extends AbstractController {
         'waitingRoomPositiveFeedbackColor' => $this->getParameter('vaszev_barion.waitingRoomPositiveFeedbackColor'),
         'waitingRoomNegativeFeedbackColor' => $this->getParameter('vaszev_barion.waitingRoomNegativeFeedbackColor'),
         'waitingRoomNeturalFeedbackColor'  => $this->getParameter('vaszev_barion.waitingRoomNeturalFeedbackColor'),
+        'waitingRoomGoogleFont'            => $this->getParameter('vaszev_barion.waitingRoomGoogleFont'),
         'pixelId'                          => $this->getParameter('vaszev_barion.pixelId'),
     ];
     try {

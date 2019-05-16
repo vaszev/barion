@@ -5,14 +5,14 @@
   <meta name="robots" content="noindex,noarchive">
   <title>Barion smart gateway</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <link href="https://fonts.googleapis.com/css?family=Lato&amp;subset=latin-ext" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family={{ waitingRoomGoogleFont|default('Lato')|url_encode }}&amp;subset=latin-ext" rel="stylesheet">
   <style>
     html {
       height: 100vh;
     }
 
     body {
-      font-family: 'Lato', sans-serif;
+      font-family: '{{ waitingRoomGoogleFont|default('Lato') }}', sans-serif;
       height: 100vh;
       background-color: {{ waitingRoomBg }};
       color: {{ waitingRoomColor }};
@@ -38,6 +38,7 @@
     img {
       padding: 1rem;
       background-color: #fff;
+      max-width: calc(100% - 2rem);
     }
 
     .content {
@@ -50,6 +51,7 @@
       text-align: center;
       max-width: 85vw;
       margin: 0 auto;
+      overflow: hidden;
     }
 
     .result {
@@ -74,8 +76,9 @@
 
     .progressbar {
       counter-reset: step;
-      width: 75vw;
-      min-width: 500px;
+      width: 85vw;
+      min-width: 300px;
+      max-width: 900px;
       padding-inline-start: 0;
       display: flex;
       justify-content: center;
@@ -139,8 +142,8 @@
   {% if paymentStateResponse is defined and paymentStateResponse is not empty %}
     <ul class="progressbar">
       <li {% if judgedStep >= 1 %}class="active"{% endif %}>{{ "barion.cart"|trans }}</li>
-      <li {% if judgedStep >= 2 %}class="active"{% endif %}>{{ "barion.transaction" }}</li>
-      <li {% if judgedStep >= 3 %}class="active"{% endif %}>{{ "barion.done" }}</li>
+      <li {% if judgedStep >= 2 %}class="active"{% endif %}>{{ "barion.transaction"|trans }}</li>
+      <li {% if judgedStep >= 3 %}class="active"{% endif %}>{{ "barion.done"|trans }}</li>
     </ul>
     <h1>{{ paymentStateResponse.POSName }}</h1>
     <h3>{{ "Your payment of"|trans }} <strong>{{ paymentStateResponse.total }}&nbsp;{{ paymentStateResponse.currency }}</strong></h3>

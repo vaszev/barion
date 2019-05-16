@@ -16,6 +16,7 @@ class Configuration implements ConfigurationInterface {
   private $waitingRoomPositiveFeedbackColor = 'green';
   private $waitingRoomNegativeFeedbackColor = 'red';
   private $waitingRoomNeturalFeedbackColor = 'orange';
+  private $waitingRoomGoogleFont = 'Lato';
 
 
 
@@ -41,6 +42,7 @@ class Configuration implements ConfigurationInterface {
         ->variableNode('waitingRoomPositiveFeedbackColor')->defaultValue($this->waitingRoomPositiveFeedbackColor)->end()
         ->variableNode('waitingRoomNegativeFeedbackColor')->defaultValue($this->waitingRoomNegativeFeedbackColor)->end()
         ->variableNode('waitingRoomNeturalFeedbackColor')->defaultValue($this->waitingRoomNeturalFeedbackColor)->end()
+        ->variableNode('waitingRoomGoogleFont')->defaultValue($this->waitingRoomGoogleFont)->end()
         ->end();
 
     return $builder;

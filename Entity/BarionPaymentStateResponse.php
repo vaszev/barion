@@ -146,10 +146,11 @@ class BarionPaymentStateResponse extends Base {
   private $RedirectUrl;
 
   /**
+   * it could be null when ENV == dev (otherwise Barion keep sending emails periodically)
    * @var string
-   * @ORM\Column(name="callback_url", type="string", length=255)
+   * @ORM\Column(name="callback_url", type="string", length=255, nullable=true)
    */
-  private $CallbackUrl;
+  private $CallbackUrl = null;
 
 
 

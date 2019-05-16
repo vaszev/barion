@@ -77,9 +77,21 @@ Adding translations :
 'barion.back.to.the.webshop': ''
 ```
 
+### Best practicles
+
+- save your webshop `orderID` in your database's table
+- get your `orderID` and items
+- init Barion online payment with the data you know about your visitor
+- create a transaction with your `orderID` and add items
+- prepare your payment and get your URL for Barion's payment page
+- pay, and get back to our waiting room where customer got progress info
+- Barion will knock on callback URL where we'll set payment state
+- let you customer know about it
+- get back to your webshop and keep buying
+
 ### Example
 
-You have to gather your items into **one** transactions that could have **more items**:
+You have to gather your items into *transaction(s)* that could have *one or more* items:
 
 ```php
 $myWebsopTransactionId = 8211;

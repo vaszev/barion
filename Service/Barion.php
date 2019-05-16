@@ -119,9 +119,9 @@ class Barion {
   private $webshopName;
   /** @var string */
   private $currency;
-  /** @var BarionPaymentTransaction */
-  private $transaction;
-  /** @var BarionItem[] */
+  /** @var BarionPaymentTransaction[] */
+  private $transactions = [];
+  /** @var BarionItem[][] */
   private $items = [];
   /** @var BarionPaymentRequest */
   private $request;
@@ -375,7 +375,7 @@ class Barion {
     $this->redirectURL = null;
     $this->webshopName = null;
     $this->currency = null;
-    $this->transaction = null;
+    $this->transactions = [];
     $this->items = [];
     $this->request = null;
     $this->client = null;
@@ -461,20 +461,22 @@ class Barion {
 
 
   /**
+   * @param $transactionIdx
    * @param $name
+   * @param null $description
    * @param int $quantity
    * @param float $unitPrice
    * @param $sku
    * @param string $unit
-   * @param null $description
    * @return $this
    * @throws \Exception
    */
-  public function addItem($name, $description, int $quantity, float $unitPrice, $sku, $unit = 'piece') {
-    if (empty($this->transaction)) {
+  public function addItem($transactionIdx, $name, $description, int $quantity, float $unitPrice, $sku, $unit = 'piece') {
+    if (empty($this->transactions) || empty($this->transactions[$transactionIdx])) {
       throw new \Exception('Transaction not found. Call "createTransaction" first');
     }
-    foreach ($this->items as $item) {
+    $this->items[$transactionIdx] = $this->items[$transactionIdx] ?? [];
+    foreach ($this->items[$transactionIdx] as $item) {
       if ($item->getSKU() == $sku) {
         throw new \Exception('SKU (' . $sku . ') already exists at item (' . $name . ')');
       }
@@ -487,7 +489,7 @@ class Barion {
          ->setUnitPrice($unitPrice)
          ->setItemTotal($quantity * $unitPrice)
          ->setSKU($sku);
-    $this->items[] = $item;
+    $this->items[$transactionIdx][] = $item;
 
     return $this;
   }
@@ -504,12 +506,15 @@ class Barion {
     if (empty($this->client)) {
       throw new \Exception('Wrapper not initialized. Call "init" first');
     }
+    if (!empty($this->transactions[$connetedOrderId])) {
+      throw new \Exception('Transaction index (connectedOrderId) already exists. Do not create more transactions with the same index');
+    }
     $transaction = new BarionPaymentTransaction();
     $transaction->setPayee($this->container->getParameter('vaszev_barion.payee'))
                 ->setCurrency($this->currency)
                 ->setConnectedOrderId($connetedOrderId)
                 ->setComment($comment);
-    $this->transaction = $transaction;
+    $this->transactions[$connetedOrderId] = $transaction;
 
     return $this;
   }
@@ -527,7 +532,7 @@ class Barion {
     if (empty($this->client)) {
       throw new \Exception('Wrapper not initialized. Call "init" first');
     }
-    if (empty($this->transaction)) {
+    if (empty($this->transactions)) {
       throw new \Exception('Empty transaction. Call "createTransaction" first');
     }
     $request = new BarionPaymentRequest();
@@ -549,38 +554,59 @@ class Barion {
 
 
   /**
-   * @return BarionPaymentTransaction
+   * @return BarionPaymentTransaction[]
    * @throws \Exception
    */
-  private function prepareVerifiedTransaction() {
+  private function prepareVerifiedTransactions() {
     if (empty($this->client)) {
       throw new \Exception('Wrapper not initialized. Call "init" first');
     }
     if (empty($this->request)) {
       throw new \Exception('Empty request. Call "preparePaymentRequest" first');
     }
-    if (empty($this->transaction)) {
+    if (empty($this->transactions)) {
       throw new \Exception('Transaction not found. Call "createTransaction" first');
     }
     if (empty($this->items)) {
       throw new \Exception('Item not found. Call "addItem" first');
     }
-    // save request and transaction
-    $this->transaction->setRequest($this->request)
-                      ->setItems($this->items);
-    $errors = $this->validator->validate($this->transaction);
-    if (count($errors) > 0) {
-      $errorsString = (string)$errors;
-      throw new \Exception($errorsString);
-    }
-    try {
-      $this->em->persist($this->transaction);
-      $this->em->flush();
-    } catch (\Exception $e) {
-      throw new \Exception('Transaction / Request / Item cannot be flushed. Check mandatory fields');
+    // save request and transactions
+    foreach ($this->transactions as $transaction) {
+      $transaction->setRequest($this->request)
+                  ->setItems($this->items[$transaction->getConnectedOrderId()]);
+      $errors = $this->validator->validate($transaction);
+      if (count($errors) > 0) {
+        $errorsString = (string)$errors;
+        throw new \Exception($errorsString);
+      }
+      try {
+        $this->em->persist($transaction);
+        $this->em->flush();
+      } catch (\Exception $e) {
+        throw new \Exception('Transaction / Request / Item cannot be flushed. Check mandatory fields');
+      }
     }
 
-    return $this->transaction;
+    return $this->transactions;
+  }
+
+
+
+  /**
+   * @return BarionPaymentRequest
+   * @throws \Exception
+   */
+  private function getRequestFromTransactions() {
+    if (empty($this->transactions)) {
+      throw new \Exception('Transaction not found. Call "createTransaction" first');
+    }
+    $transaction = current($this->transactions);
+    $request = $transaction->getRequest();
+    if (empty($request)) {
+      throw new \Exception('Request is empty yet. Call "prepareVerifiedTransactions" first');
+    }
+
+    return $request;
   }
 
 
@@ -591,27 +617,12 @@ class Barion {
    */
   public function closeAndGetPaymentURL() {
     $env = $_SERVER['APP_ENV'] ?? 'dev';
-    $paymentTransaction = $this->prepareVerifiedTransaction();
-    $trans = new PaymentTransactionModel();
-    $trans->POSTransactionId = $paymentTransaction->getId();
-    $trans->Payee = $paymentTransaction->getPayee();
-    $trans->Total = $paymentTransaction->getTotal();
-    $trans->Currency = $paymentTransaction->getCurrency();
-    $trans->Comment = $paymentTransaction->getComment();
-    /** @var BarionItem $item */
-    foreach ($paymentTransaction->getItems() as $item) {
-      $itemModel = new ItemModel();
-      $itemModel->Name = $item->getName();
-      $itemModel->Description = $item->getDescription();
-      $itemModel->Quantity = $item->getQuantity();
-      $itemModel->Unit = $item->getUnit();
-      $itemModel->UnitPrice = $item->getUnitPrice();
-      $itemModel->ItemTotal = $item->getItemTotal();
-      $itemModel->SKU = $item->getSKU();
-      $trans->AddItem($itemModel);
-    }
+    // save models in our database
+    $paymentTransactions = $this->prepareVerifiedTransactions();
+    // now we have transactions (or at least one in array)
     /** @var BarionPaymentRequest $paymentRequest */
-    $paymentRequest = $paymentTransaction->getRequest();
+    $paymentRequest = $this->getRequestFromTransactions();
+    // we can use the last paymentTransaction to get the request (N:1)
     $ppr = new PreparePaymentRequestModel();
     $ppr->GuestCheckout = $paymentRequest->isGuestCheckout();
     $ppr->PaymentType = $paymentRequest->getPaymentType();
@@ -628,7 +639,27 @@ class Barion {
     } else {
       $ppr->CallbackUrl = $paymentRequest->getCallbackUrl();
     }
-    $ppr->AddTransaction($trans);
+    foreach ($paymentTransactions as $paymentTransaction) {
+      $trans = new PaymentTransactionModel();
+      $trans->POSTransactionId = $paymentTransaction->getId();
+      $trans->Payee = $paymentTransaction->getPayee();
+      $trans->Total = $paymentTransaction->getTotal();
+      $trans->Currency = $paymentTransaction->getCurrency();
+      $trans->Comment = $paymentTransaction->getComment();
+      /** @var BarionItem $item */
+      foreach ($paymentTransaction->getItems() as $item) {
+        $itemModel = new ItemModel();
+        $itemModel->Name = $item->getName();
+        $itemModel->Description = $item->getDescription();
+        $itemModel->Quantity = $item->getQuantity();
+        $itemModel->Unit = $item->getUnit();
+        $itemModel->UnitPrice = $item->getUnitPrice();
+        $itemModel->ItemTotal = $item->getItemTotal();
+        $itemModel->SKU = $item->getSKU();
+        $trans->AddItem($itemModel);
+      }
+      $ppr->AddTransaction($trans);
+    }
     // prepare for sending
     $myPayment = $this->client->PreparePayment($ppr);
     if (empty($myPayment)) {

@@ -16,18 +16,18 @@
       height: 100vh;
       background-color: {{ waitingRoomBg }};
       color: {{ waitingRoomColor }};
-      font-size: 18px;
+      font-size: calc(14px + 0.5vw);
       margin: 0;
       overflow-y: hidden;
     }
 
     h1 {
-      font-size: 2rem;
+      font-size: 2em;
       margin: 0;
     }
 
     h2, h3 {
-      font-size: 1.5rem;
+      font-size: 1.5em;
       margin: 0;
     }
 
@@ -57,11 +57,14 @@
     .result {
       display: block;
       padding: 2vh 5vw;
-      font-size: 2rem;
+      font-size: 2em;
       color: #fff;
       border-radius: 5px;
       text-transform: uppercase;
       letter-spacing: 3px;
+      max-width: 75vw;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
 
     .msg {
@@ -73,9 +76,12 @@
       text-decoration: none;
       color: inherit;
       border: 2px solid{{ waitingRoomColor }};
-      padding: 1rem 3rem;
+      padding: 2vh 5vw;
       text-transform: uppercase;
       border-radius: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: calc(75vw - 4px);
     }
 
     .progressbar {
@@ -96,7 +102,7 @@
       position: relative;
       text-align: center;
       text-transform: uppercase;
-      color: #7d7d7d;
+      color: {{ waitingRoomColor }};
     }
 
     .progressbar li:before {
@@ -105,20 +111,20 @@
       content: counter(step);
       counter-increment: step;
       line-height: 3rem;
-      border: 3px solid #7d7d7d;
+      border: 3px solid {{ waitingRoomColor }};
       display: block;
       text-align: center;
       margin: 0 auto 10px auto;
       border-radius: 50%;
-      background-color: {{ waitingRoomBg }};
+      background-color: {{ waitingRoomPositiveFeedbackColor }};
     }
 
     .progressbar li:after {
       width: 100%;
-      height: 3px;
+      height: 5px;
       content: '';
       position: absolute;
-      background-color: #7d7d7d;
+      background-color: {{ waitingRoomColor }};
       top: 1.5rem;
       left: -50%;
       z-index: -1;
@@ -129,15 +135,15 @@
     }
 
     .progressbar li.active {
-      color: green;
+      color: #fff;
     }
 
     .progressbar li.active:before {
-      border-color: #55b776;
+      border-color: {{ waitingRoomPositiveFeedbackColor }};
     }
 
     .progressbar li.active + li:after {
-      background-color: #55b776;
+      background-color: {{ waitingRoomPositiveFeedbackColor }};
     }
   </style>
 </head>

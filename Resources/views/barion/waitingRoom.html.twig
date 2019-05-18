@@ -74,7 +74,7 @@
 
     .back {
       text-decoration: none;
-      color: inherit;
+      color: {{ waitingRoomColor }};
       border: 2px solid{{ waitingRoomColor }};
       padding: 2vh 5vw;
       text-transform: uppercase;
@@ -116,7 +116,7 @@
       text-align: center;
       margin: 0 auto 10px auto;
       border-radius: 50%;
-      background-color: {{ waitingRoomPositiveFeedbackColor }};
+      background-color: {{ waitingRoomBg }};
     }
 
     .progressbar li:after {
@@ -135,11 +135,12 @@
     }
 
     .progressbar li.active {
-      color: #fff;
+      color: {{ waitingRoomColor }};
     }
 
     .progressbar li.active:before {
       border-color: {{ waitingRoomPositiveFeedbackColor }};
+      background-color: {{ waitingRoomPositiveFeedbackColor }};
     }
 
     .progressbar li.active + li:after {
